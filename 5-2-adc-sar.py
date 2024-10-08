@@ -14,12 +14,15 @@ def decimal12binary(value):
     return [int(bit) for bit in bin(value)[2:].zfill(8)]
 
 def adc():
-    for value in range(256):
-        signal = decimal12binary(value)
+    value = 0
+    for i in range(8):
+        step = 2**(7 - i)
+        signal = decimal12binary(value + step)
         GPIO.output(dac, signal)
         time.sleep(0.01)
-        if GPIO.input(comp) == 1:
-            return value
+        if GPIO.input(comp) == 0:
+            value += step
+    return value
     
 
 try:
