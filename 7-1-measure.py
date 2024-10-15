@@ -39,52 +39,74 @@ def charge_and_discharge():
     measurements = []
 
     try:
-        # Зарядка конденсатора
-        GPIO.output(TROYKA_PIN, 1)  # Подаем напряжение 3.3В
-        start_time = time.time()
+    # Создаем список для хранения результатов измерений
+    measurements = []
 
-        while True:
-            voltage = measure_voltage()
-            measurements.append(voltage)
-            display_on_leds(voltage)
+    # Сохраняем момент начала эксперимента
+    start_time = time.time()
 
-            if voltage >= 255 * 0.97:  # 97% от максимального значения (3.3В)
-                print("Конденсатор зарядился до 97%")
-                break
+    # Зарядка конденсатора
+    GPIO.output(TROYKA_PIN, GPIO.HIGH)  # Подать 3.3В на тройка-модуль
+    print("Зарядка конденсатора...")
 
-        # Разрядка конденсатора
-        GPIO.output(TROYKA_PIN, 0)  # Убираем напряжение
-        print("Началась разрядка конденсатора")
+    # Измерение напряжения во время зарядки
+    while True:
+        voltage = measure_voltage()
+        measurements.append(voltage)
+        display_on_leds(voltage)
 
-        while True:
-            voltage = measure_voltage()
-            measurements.append(voltage)
-            display_on_leds(voltage)
+        # Прекращаем зарядку, если напряжение достигло 97% (примерно 248 из 255)
+        if voltage >= 248:
+            break
 
-            if voltage <= 255 * 0.02:  # 2% от максимального значения
-                print("Конденсатор разрядился до 2%")
-                break
+    # Разрядка конденсатора
+    GPIO.output(TROYKA_PIN, GPIO.LOW)  # Подать 0В на тройка-модуль
+    print("Разрядка конденсатора...")
 
-        end_time = time.time()
-        duration = end_time - start_time
-        print(f"Продолжительность эксперимента: {duration:.2f} секунд")
+    # Измерение напряжения во время разрядки
+    while True:
+        voltage = measure_voltage()
+        measurements.append(voltage)
+        display_on_leds(voltage)
 
-        # Сохранение данных
-        with open("data.txt", "w") as data_file:
-            for measurement in measurements:
-                data_file.write(f"{measurement}\n")
+        # Прекращаем разрядку, если напряжение достигло 2% (примерно 5 из 255)
+        if voltage <= 5:
+            break
 
-        # График
-        plt.plot(measurements)
-        plt.title("Измерения напряжения на выходе RC-цепи")
-        plt.xlabel("Номер измерения")
-        plt.ylabel("Значение АЦП")
-        plt.show()
+    # Сохраняем момент завершения эксперимента
+    end_time = time.time()
 
-    finally:
-        GPIO.output(DAC_PIN, 0)
-        GPIO.output(LED_PIN, 0)
-        GPIO.cleanup()
+    # Рассчитываем продолжительность эксперимента
+    duration = end_time - start_time
+    print(f"Продолжительность эксперимента: {duration:.2f} секунд")
 
-if __name__ == "__main__":
-    charge_and_discharge()
+    # Построение графика
+    plt.plot(measurements)
+    plt.title("Зависимость напряжения на выходе RC-цепи от номера измерения")
+    plt.xlabel("Номер измерения")
+    plt.ylabel("Напряжение (единицы АЦП)")
+    plt.show()
+
+    # Сохранение данных в файл data.txt
+    with open("data.txt", "w") as data_file:
+        for measurement in measurements:
+            data_file.write(f"{measurement}\n")
+
+    # Средняя частота дискретизации
+    avg_frequency = len(measurements) / duration
+    quantization_step = 3.3 / 256  # Шаг квантования АЦП
+
+    # Сохранение настроек в файл settings.txt
+    with open("settings.txt", "w") as settings_file:
+        settings_file.write(f"Средняя частота дискретизации: {avg_frequency:.2f} Гц\n")
+        settings_file.write(f"Шаг квантования АЦП: {quantization_step:.5f} В\n")
+
+    # Вывод данных в терминал
+    print(f"Период одного измерения: {duration / len(measurements):.5f} секунд")
+    print(f"Средняя частота дискретизации: {avg_frequency:.2f} Гц")
+    print(f"Шаг квантования АЦП: {quantization_step:.5f} В")
+
+finally:
+    # Подать 0 на все GPIO выходы и сбросить настройки GPIO
+    GPIO.output(LED_PINS, 0)
+    GPIO.cleanup()
