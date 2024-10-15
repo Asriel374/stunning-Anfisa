@@ -16,13 +16,16 @@ GPIO.setup(TROYKA_PIN, GPIO.OUT)
 def dec2bin(value):
     return [int(bit) for bit in bin(value)[2:].zfill(8)]
 
-def measure_voltage():
-    for value in range(256):
-        GPIO.output(DAC_PINS, dec2bin(value))
-        time.sleep(0.001)  
+def adc():
+    value = 0
+    for i in range(8):
+        step = 2**(7 - i)
+        signal = dec2bin(value + step)
+        GPIO.output(DAC_PINS, signal)
+        time.sleep(0.01)
         if GPIO.input(COMP_PIN) == 0:
-            return value
-    return 255  
+            value += step
+    return value
 
 def display_on_leds(value):
     GPIO.output(LED_PINS, dec2bin(value))
@@ -32,18 +35,14 @@ try:
 
     start_time = time.time()
 
-    GPIO.output(TROYKA_PIN, GPIO.HIGH)  
     print("Зарядка конденсатора...")
 
-    while True:
-        voltage = measure_voltage()
+    while time.time() <= start_time + 8:
+        voltage = adc()
         measurements.append(voltage)
         display_on_leds(voltage)
 
-        if voltage >= 248:
-            break
-
-    GPIO.output(TROYKA_PIN, GPIO.LOW)  
+    '''
     print("Разрядка конденсатора...")
 
     while True:
@@ -53,6 +52,7 @@ try:
 
         if voltage <= 5:
             break
+    '''
 
     end_time = time.time()
 
@@ -70,7 +70,7 @@ try:
             data_file.write(f"{measurement}\n")
 
     avg_frequency = len(measurements) / duration
-    quantization_step = 3.3 / 256  # Шаг квантования АЦП
+    quantization_step = 3.3 / 256  
 
     with open("settings.txt", "w") as settings_file:
         settings_file.write(f"Средняя частота дискретизации: {avg_frequency:.2f} Гц\n")
