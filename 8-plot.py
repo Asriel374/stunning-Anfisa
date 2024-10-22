@@ -6,6 +6,7 @@ data = np.loadtxt('data.txt')
 settings = np.loadtxt('settings.txt')
 
 # Присваивание значений из файла settings.txt
+adc_values = data # Показания АЦП
 sampling_frequency = settings[0]  # Средняя частота дискретизации
 quantization_step = settings[1]  # Шаг квантования
 
@@ -15,11 +16,12 @@ voltage = data * quantization_step
 
 # Построение графика
 fig, ax = plt.subplots()
-ax.plot(time, voltage, color='blue', marker='o', markersize=5, markerfacecolor='red', label='Напряжение на RC-цепи')
+# Прорежённые маркеры
+ax.plot(time, voltage, label = 'Зарядка конденсатора', color = 'b', marker = 'o', markevery = 10)
 
 # Настройки осей
-ax.set_xlim(np.min(time), np.max(time))
-ax.set_ylim(np.min(voltage), np.max(voltage))
+ax.set_xlim(left = 0)
+ax.set_ylim(bottom = 0)
 
 # Подписи осей
 ax.set_xlabel('Время (с)')
@@ -29,7 +31,9 @@ ax.set_ylabel('Напряжение (В)')
 ax.set_title('Зависимость напряжения от времени\nдля RC-цепи')
 
 # Настройки сетки
-ax.grid(True, which='both', linestyle='--', color='gray')
+ax.grid(which = 'major', linestyle = '-', linewidth = 0.75)
+ax.grid(which = 'minor', linestyle = ':', linewidth = 0.5)
+ax.minorticks_on()
 
 # Легенда
 ax.legend()
