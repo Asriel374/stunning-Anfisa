@@ -1,51 +1,46 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# 1. Чтение данных из файлов data.txt и settings.txt
-with open('data.txt', 'r') as data_file:
-    adc_values = np.array([int(line.strip()) for line in data_file])
+# Чтение данных из файлов
+data = np.loadtxt('data.txt')
+settings = np.loadtxt('settings.txt')
 
-with open('settings.txt', 'r') as settings_file:
-    settings = settings_file.readlines()
-    # Извлекаем числовые значения, игнорируя единицы измерения
-    sampling_frequency = float(settings[0].strip().split()[-1].replace('Гц', ''))  # Средняя частота дискретизации
-    quantization_step = float(settings[1].strip().split()[-1].replace('В', ''))  # Шаг квантования АЦП
+# Присваивание значений из файла settings.txt
+sampling_frequency = settings[0]  # Средняя частота дискретизации
+quantization_step = settings[1]  # Шаг квантования
 
-# 2. Перевод показаний АЦП в Вольты, а номера отсчётов в секунды
-voltages = adc_values * quantization_step  # Перевод в Вольты
-time_values = np.arange(len(adc_values)) / sampling_frequency  # Перевод номеров отсчетов в секунды
+# Перевод номеров отсчётов в секунды и показаний АЦП в Вольты
+time = np.arange(len(data)) / sampling_frequency
+voltage = data * quantization_step
 
-# 3. Построение графика зависимости напряжения от времени
+# Построение графика
 fig, ax = plt.subplots()
+ax.plot(time, voltage, color='blue', marker='o', markersize=5, markerfacecolor='red', label='Напряжение на RC-цепи')
 
-# 4. Настройка линии графика: цвет, форма линии, маркеры, легенда
-ax.plot(time_values, voltages, label="V(t)", color="blue", marker="o", markersize=5, markerfacecolor="red", linewidth=1)
+# Настройки осей
+ax.set_xlim(np.min(time), np.max(time))
+ax.set_ylim(np.min(voltage), np.max(voltage))
 
-# 5. Задание максимальных и минимальных значений для шкалы
-ax.set_xlim([np.min(time_values), np.max(time_values)])
-ax.set_ylim([np.min(voltages), np.max(voltages)])
+# Подписи осей
+ax.set_xlabel('Время (с)')
+ax.set_ylabel('Напряжение (В)')
 
-# 6. Подписи осей
-ax.set_xlabel("Time (s)")
-ax.set_ylabel("Voltage (V)")
+# Название графика
+ax.set_title('Зависимость напряжения от времени\nдля RC-цепи')
 
-# 7. Название графика с переносом на следующую строку
-ax.set_title("Voltage across RC circuit\nCharge and Discharge", loc='center', wrap=True)
+# Настройки сетки
+ax.grid(True, which='both', linestyle='--', color='gray')
 
-# 8. Настройка сетки (major и minor)
-ax.grid(True, which='both', linestyle='--', color='gray', alpha=0.7)
-ax.minorticks_on()
-ax.grid(which='minor', linestyle=':', linewidth='0.5', color='gray')
+# Легенда
+ax.legend()
 
-# 9. Текст с временем зарядки и разрядки
-charge_time = time_values[np.argmax(voltages)]  # Время зарядки
-discharge_time = time_values[-1] - charge_time  # Время разрядки
-ax.text(np.mean(time_values), np.max(voltages), f"Charge time: {charge_time:.2f}s\nDischarge time: {discharge_time:.2f}s",
-        fontsize=10, color="black", ha="center", va="bottom")
+# Текст с временем зарядки и разрядки
+charge_time = time[np.argmax(voltage >= 0.97 * np.max(voltage))]
+discharge_time = time[np.argmax(voltage <= 0.02 * np.max(voltage))]
+ax.text(np.mean(time), np.max(voltage) * 0.9, f'Время зарядки: {charge_time:.2f} с\nВремя разрядки: {discharge_time:.2f} с', color='green')
 
-# 3. Сохранение графика в файл .svg
-plt.savefig('rc_circuit_graph.svg', format='svg')
+# Сохранение графика в файл
+plt.savefig('graph.svg')
 
-# Показ графика
-plt.legend()
+# Отображение графика
 plt.show()
