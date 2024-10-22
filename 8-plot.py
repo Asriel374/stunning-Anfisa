@@ -7,8 +7,9 @@ with open('data.txt', 'r') as data_file:
 
 with open('settings.txt', 'r') as settings_file:
     settings = settings_file.readlines()
-    sampling_frequency = float(settings[0].strip().split()[-1])  # Средняя частота дискретизации
-    quantization_step = float(settings[1].strip().split()[-1])  # Шаг квантования АЦП
+    # Извлекаем числовые значения, игнорируя единицы измерения
+    sampling_frequency = float(settings[0].strip().split()[-1].replace('Гц', ''))  # Средняя частота дискретизации
+    quantization_step = float(settings[1].strip().split()[-1].replace('В', ''))  # Шаг квантования АЦП
 
 # 2. Перевод показаний АЦП в Вольты, а номера отсчётов в секунды
 voltages = adc_values * quantization_step  # Перевод в Вольты
