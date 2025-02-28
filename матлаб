@@ -1,0 +1,36 @@
+% 1. Чтение исходного изображения (замените 'photo.jpg' на ваш файл)
+I = imread('photo.jpg');
+
+% 2. Уменьшаем разрешение, чтобы получить "I_small" (если вы это уже сделали,
+%    можно пропустить и сразу использовать вашу переменную I_small)
+I_small = imresize(I, 0.5);
+
+% 3. Предположим, что мы хотим работать с цветным изображением.
+%    Для упрощения возьмём только один канал (например, красный).
+%    Если ваше "уменьшенное" изображение сразу в одном канале (или grayscale),
+%    то этот шаг не нужен — просто I_small уже будет матрицей 2D.
+R = I_small(:,:,1);   % красный канал (матрица размером height x width)
+
+% 4. Выбираем одну строку (row) из этого канала, например, центральную
+row_idx = round(size(R,1)/2);  % индекс «серединной» строки
+y_vals = double(R(row_idx, :));  % интенсивности пикселей в этой строке
+x_vals = 1 : length(y_vals);     % координаты по горизонтали
+
+% 5. Аппроксимируем эти данные полиномом некоторой степени
+degree = 5;                      % степень многочлена (можете менять)
+p = polyfit(x_vals, y_vals, degree);
+
+% 6. Строим «гладкую» сетку x для красивого графика
+x_fine = linspace(1, length(y_vals), 200);
+y_fine = polyval(p, x_fine);
+
+% 7. Визуализация
+figure;
+plot(x_vals, y_vals, 'ro', 'MarkerFaceColor', 'r');  % точки — реальные пиксели
+hold on;
+plot(x_fine, y_fine, 'b-', 'LineWidth', 2);          % аппроксимирующий многочлен
+grid on;
+legend('Pixel intensities','Polynomial fit','Location','best');
+title(sprintf('Row %d of the reduced image (Red channel)', row_idx));
+xlabel('Pixel column index');
+ylabel('Intensity');
