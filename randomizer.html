@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Генератор номеров задач</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&display=swap');
+        
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .chip-animated {
+            animation: fadeUp 0.3s ease both;
+        }
+        
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+        }
+        input[type=number] { 
+            -moz-appearance: textfield; 
+        }
+        
+        .gen-btn:hover { 
+            background: #e8ff47 !important; 
+            color: #0d0d0d !important; 
+        }
+        .gen-btn:active { 
+            transform: scale(0.97); 
+        }
+        
+        .copy-btn:hover { 
+            background: rgba(232,255,71,0.1) !important; 
+            border-color: #e8ff47 !important; 
+            color: #e8ff47 !important; 
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+    </style>
+</head>
+<body style="min-height: 100vh; background: #0d0d0d; display: flex; align-items: center; justify-content: center; padding: 24px;">
+    <div style="width: 100%; max-width: 540px; background: #161616; border: 1px solid #2a2a2a; border-radius: 16px; padding: 36px 32px; box-shadow: 0 0 60px rgba(0,0,0,0.6);">
+        
+        <!-- Header -->
+        <div style="margin-bottom: 32px;">
+            <div style="font-size: 11px; color: #555; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 6px;">
+                учебный рандомайзер
+            </div>
+            <div style="font-size: 22px; font-weight: 600; color: #f0f0f0; letter-spacing: -0.02em;">
+                Генератор номеров задач
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+
+            <!-- Range + Count row -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                
+                <!-- Максимум N -->
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                        <label style="font-size: 12px; color: #888; letter-spacing: 0.05em;">Максимум N</label>
+                        <span id="maxn-range-hint" style="font-size: 11px; color: #444;">диапазон 1 – 30</span>
+                    </div>
+                    <input 
+                        id="max-n"
+                        type="number"
+                        value="30"
+                        min="1"
+                        max="9999"
+                        style="background: #1e1e1e; border: 1px solid #333; border-radius: 8px; color: #e0e0e0; font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 18px; padding: 8px 12px; width: 100%; outline: none; box-sizing: border-box; transition: border-color 0.2s;"
+                    >
+                </div>
+
+                <!-- Сколько выдать -->
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                        <label style="font-size: 12px; color: #888; letter-spacing: 0.05em;">Сколько выдать</label>
+                        <span id="available-hint" style="font-size: 11px; color: #444;">доступно: 30</span>
+                    </div>
+                    <input 
+                        id="count-input"
+                        type="number"
+                        value="10"
+                        min="1"
+                        max="9999"
+                        style="background: #1e1e1e; border: 1px solid #333; border-radius: 8px; color: #e0e0e0; font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 18px; padding: 8px 12px; width: 100%; outline: none; box-sizing: border-box; transition: border-color 0.2s;"
+                    >
+                </div>
+            </div>
+
+            <!-- Исключения -->
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                    <label style="font-size: 12px; color: #888; letter-spacing: 0.05em;">Исключения (классная работа)</label>
+                    <span style="font-size: 11px; color: #444;">числа через запятую или пробел</span>
+                </div>
+                <textarea 
+                    id="exclude-text"
+                    placeholder="например: 3, 7, 12, 15"
+                    rows="2"
+                    style="width: 100%; background: #1e1e1e; border: 1px solid #333; border-radius: 8px; color: #e0e0e0; font-family: 'IBM Plex Mono', monospace; font-size: 14px; padding: 10px 12px; resize: none; outline: none; box-sizing: border-box; transition: border-color 0.2s;"
+                ></textarea>
+            </div>
+
+            <!-- Exclusion chips preview -->
+            <div id="excluded-chips" style="display: none; flex-wrap: wrap; gap: 6px; margin-top: -8px;"></div>
+
+            <!-- Error -->
+            <div id="error-box" style="display: none; background: rgba(255,60,60,0.08); border: 1px solid rgba(255,60,60,0.25); border-radius: 8px; padding: 10px 14px; color: #ff7070; font-size: 13px;"></div>
+
+            <!-- Generate button -->
+            <button 
+                id="generate-btn"
+                class="gen-btn"
+                style="background: #c8ef20; color: #0d0d0d; border: none; border-radius: 10px; padding: 14px 0; font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: background 0.15s, color 0.15s, transform 0.1s; margin-top: 4px;"
+            >
+                Сгенерировать
+            </button>
+        </div>
+
+        <!-- Results -->
+        <div id="results-section" style="display: none; margin-top: 32px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <div id="results-count" style="font-size: 11px; color: #555; letter-spacing: 0.12em; text-transform: uppercase;">
+                    Результат — 0 чисел
+                </div>
+                <button 
+                    id="copy-btn"
+                    class="copy-btn"
+                    style="background: transparent; border: 1px solid #333; color: #888; font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 4px 12px; border-radius: 6px; cursor: pointer; letter-spacing: 0.08em; text-transform: uppercase; transition: all 0.15s;"
+                >
+                    Копировать
+                </button>
+            </div>
+
+            <!-- Number grid -->
+            <div id="results-grid" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+
+            <!-- Flat list -->
+            <div style="margin-top: 16px; padding: 12px 14px; background: #111; border: 1px solid #222; border-radius: 8px; color: #666; font-size: 13px; line-height: 1.6;">
+                <span style="color: #444;">список: </span>
+                <span id="flat-list" style="color: #ccc;"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
+        let maxN = 30;
+        let countVal = 10;
+        let excludeInput = '';
+        let results = [];
+        let currentError = '';
+
+        // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
+        function parseExclusions(str) {
+            return str
+                .split(/[\s,;]+/)
+                .map(s => parseInt(s.trim(), 10))
+                .filter(n => !isNaN(n));
+        }
+
+        function getExcludedSet() {
+            return new Set(parseExclusions(excludeInput));
+        }
+
+        function computeAvailable() {
+            const excluded = getExcludedSet();
+            const inRange = Array.from(excluded).filter(n => n >= 1 && n <= maxN).length;
+            return Math.max(0, maxN - inRange);
+        }
+
+        // === ОБНОВЛЕНИЕ UI ===
+        function updateHints() {
+            document.getElementById('maxn-range-hint').textContent = `диапазон 1 – ${maxN}`;
+            document.getElementById('available-hint').textContent = `доступно: ${computeAvailable()}`;
+        }
+
+        function updateExcludedChips() {
+            const container = document.getElementById('excluded-chips');
+            container.innerHTML = '';
+            
+            const excluded = Array.from(getExcludedSet()).sort((a, b) => a - b);
+            if (excluded.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+            
+            container.style.display = 'flex';
+            excluded.forEach(n => {
+                const span = document.createElement('span');
+                span.style.cssText = `
+                    background: rgba(255,80,80,0.12);
+                    border: 1px solid rgba(255,80,80,0.25);
+                    color: #ff8080;
+                    font-size: 12px;
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                `;
+                span.textContent = n;
+                container.appendChild(span);
+            });
+        }
+
+        function updateError() {
+            const errorBox = document.getElementById('error-box');
+            if (currentError) {
+                errorBox.innerHTML = `⚠ ${currentError}`;
+                errorBox.style.display = 'block';
+            } else {
+                errorBox.style.display = 'none';
+            }
+        }
+
+        function renderResults() {
+            const section = document.getElementById('results-section');
+            if (results.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            section.style.display = 'block';
+            document.getElementById('results-count').textContent = `Результат — ${results.length} чисел`;
+            
+            // Grid чипов
+            const grid = document.getElementById('results-grid');
+            grid.innerHTML = '';
+            
+            results.forEach((n, i) => {
+                const span = document.createElement('span');
+                span.style.cssText = `
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 44px;
+                    height: 44px;
+                    background: #1e1e1e;
+                    border: 1px solid #2e2e2e;
+                    border-radius: 8px;
+                    color: #e8ff47;
+                    font-weight: 600;
+                    font-size: 15px;
+                    transition: border-color 0.2s;
+                    animation-delay: ${i * 30}ms;
+                `;
+                span.classList.add('chip-animated');
+                span.textContent = n;
+                
+                // Hover-эффект
+                span.addEventListener('mouseenter', () => span.style.borderColor = '#e8ff47');
+                span.addEventListener('mouseleave', () => span.style.borderColor = '#2e2e2e');
+                
+                grid.appendChild(span);
+            });
+            
+            // Плоский список
+            document.getElementById('flat-list').innerHTML = results.join(', ');
+        }
+
+        function updateFullUI() {
+            updateHints();
+            updateExcludedChips();
+            updateError();
+            renderResults();
+        }
+
+        // === ГЕНЕРАЦИЯ ===
+        function generate() {
+            currentError = '';
+            
+            const excluded = getExcludedSet();
+            let pool = [];
+            for (let i = 1; i <= maxN; i++) {
+                if (!excluded.has(i)) pool.push(i);
+            }
+            
+            if (countVal > pool.length) {
+                currentError = `Нельзя выбрать ${countVal} чисел из ${pool.length} доступных (1–${maxN} за вычетом исключений).`;
+                results = [];
+                updateFullUI();
+                return;
+            }
+            
+            // Fisher-Yates shuffle
+            for (let i = pool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pool[i], pool[j]] = [pool[j], pool[i]];
+            }
+            
+            results = pool.slice(0, countVal).sort((a, b) => a - b);
+            updateFullUI();
+        }
+
+        // === КОПИРОВАНИЕ ===
+        function copyToClipboard() {
+            if (results.length === 0) return;
+            navigator.clipboard.writeText(results.join(', ')).then(() => {
+                // Можно добавить лёгкое уведомление, но оставляем минимализм как в оригинале
+            }).catch(() => {
+                alert('Не удалось скопировать (возможно, Safari заблокировал)');
+            });
+        }
+
+        // === ОБРАБОТЧИКИ ДЛЯ ЧИСЛОВЫХ ПОЛЕЙ (ИСПРАВЛЕНИЕ БАГА!) ===
+        function setupNumberInput(inputId, stateVarName, minVal, maxVal) {
+            const input = document.getElementById(inputId);
+            
+            // Input — основная логика (позволяет полностью стереть)
+            input.addEventListener('input', (e) => {
+                const val = e.target.value;
+                
+                if (val === '') {
+                    // Разрешаем пустое поле временно
+                    return;
+                }
+                
+                let num = parseInt(val, 10);
+                if (isNaN(num)) {
+                    e.target.value = (stateVarName === 'maxN' ? maxN : countVal);
+                    return;
+                }
+                
+                num = Math.max(minVal, Math.min(maxVal, num));
+                
+                if (stateVarName === 'maxN') {
+                    maxN = num;
+                } else {
+                    countVal = num;
+                }
+                
+                e.target.value = num; // отражаем clamped значение
+                updateHints();
+            });
+            
+            // Blur — если поле осталось пустым, восстанавливаем последнее валидное значение
+            input.addEventListener('blur', (e) => {
+                if (e.target.value === '') {
+                    e.target.value = (stateVarName === 'maxN' ? maxN : countVal);
+                }
+                updateHints();
+            });
+            
+            // Focus / Blur для красивой обводки
+            input.addEventListener('focus', (e) => {
+                e.target.style.borderColor = '#e8ff47';
+            });
+            input.addEventListener('blur', (e) => {
+                e.target.style.borderColor = '#333';
+            });
+        }
+
+        // === ИНИЦИАЛИЗАЦИЯ ===
+        function init() {
+            // Устанавливаем начальные значения
+            document.getElementById('max-n').value = maxN;
+            document.getElementById('count-input').value = countVal;
+            document.getElementById('exclude-text').value = excludeInput;
+            
+            // Настраиваем числовые поля
+            setupNumberInput('max-n', 'maxN', 1, 9999);
+            setupNumberInput('count-input', 'countVal', 1, 9999);
+            
+            // Текстовое поле исключений
+            const excludeArea = document.getElementById('exclude-text');
+            excludeArea.addEventListener('input', () => {
+                excludeInput = excludeArea.value;
+                updateExcludedChips();
+                updateHints();
+            });
+            
+            // Focus / Blur для textarea
+            excludeArea.addEventListener('focus', (e) => e.target.style.borderColor = '#e8ff47');
+            excludeArea.addEventListener('blur', (e) => e.target.style.borderColor = '#333');
+            
+            // Кнопки
+            document.getElementById('generate-btn').addEventListener('click', generate);
+            document.getElementById('copy-btn').addEventListener('click', copyToClipboard);
+            
+            // Первоначальное обновление интерфейса
+            updateFullUI();
+            
+            console.log('%c✅ Генератор номеров задач загружен и исправлен', 'color:#e8ff47; font-size:11px');
+        }
+        
+        // Запуск
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
